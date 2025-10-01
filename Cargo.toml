@@ -5,3 +5,4 @@ edition = "2024"
 
 [dependencies]
 time = "0.3.44"
+uuid = { version = "1.18.1", features = ["v4"] }
