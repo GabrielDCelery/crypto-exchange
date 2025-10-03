@@ -1,63 +1,28 @@
 use time::OffsetDateTime;
 use uuid::Uuid;
 
-enum Order {
-    Bid {
-        id: Uuid,
-        size: f64,
-        timestamp: i64,
-        limit_id: Option<Uuid>,
-    },
-    Ask {
-        id: Uuid,
-        size: f64,
-        timestamp: i64,
-        limit_id: Option<Uuid>,
-    },
+enum OrderType {
+    Bid,
+    Ask,
+}
+
+struct Order {
+    id: Uuid,
+    order_type: OrderType,
+    size: f64,
+    timestamp: i64,
+    limit_id: Option<Uuid>,
 }
 
 impl Order {
-    fn new_bid(size: f64) -> Self {
-        return Order::Bid {
+    fn new(size: f64, order_type: OrderType) -> Self {
+        return Order {
             id: Uuid::new_v4(),
+            order_type: order_type,
             size,
             timestamp: OffsetDateTime::now_utc().unix_timestamp(),
             limit_id: None,
         };
-    }
-
-    fn new_ask(size: f64) -> Self {
-        return Order::Ask {
-            id: Uuid::new_v4(),
-            size,
-            timestamp: OffsetDateTime::now_utc().unix_timestamp(),
-            limit_id: None,
-        };
-    }
-
-    fn id(&self) -> Uuid {
-        match self {
-            Order::Bid { id, .. } => *id,
-            Order::Ask { id, .. } => *id,
-        }
-    }
-
-    fn size(&self) -> f64 {
-        match self {
-            Order::Bid { size, .. } => *size,
-            Order::Ask { size, .. } => *size,
-        }
-    }
-
-    fn set_limit_id(&mut self, new_limit_id: Option<Uuid>) {
-        match self {
-            Order::Bid { limit_id, .. } => {
-                *limit_id = new_limit_id;
-            }
-            Order::Ask { limit_id, .. } => {
-                *limit_id = new_limit_id;
-            }
-        }
     }
 }
 
@@ -81,18 +46,18 @@ impl Limit {
     }
 
     fn add_order(&mut self, mut o: Order) {
-        o.set_limit_id(Some(self.id));
-        self.total_volume += o.size();
+        o.limit_id = Some(self.id);
+        self.total_volume += o.size;
         self.orders.push(o);
     }
 
     fn remove_order(&mut self, order_id: Uuid) -> Result<(), String> {
-        let index = self.orders.iter().position(|x: &Order| x.id() == order_id);
+        let index = self.orders.iter().position(|x: &Order| x.id == order_id);
         match index {
             Some(i) => {
                 let mut removed_order = self.orders.swap_remove(i);
-                removed_order.set_limit_id(None);
-                self.total_volume -= removed_order.size();
+                removed_order.limit_id = None;
+                self.total_volume -= removed_order.size;
                 Ok(())
             }
             None => Err(format!("Could not find order by id {order_id}")),
@@ -109,13 +74,13 @@ struct OrderBook {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::order_book::{Limit, Order};
+    use crate::order_book::{Limit, Order, OrderType};
 
     #[test]
     fn successfully_adds_a_buy_order_to_a_limit() {
         // Given
         let mut limit = Limit::new(10_000.0);
-        let buy_order = Order::new_bid(5.0);
+        let buy_order = Order::new(5.0, OrderType::Bid);
 
         // When
         limit.add_order(buy_order);
@@ -128,12 +93,12 @@ pub mod tests {
     fn successfully_removes_a_buy_order_from_a_limit() {
         // Given
         let mut limit = Limit::new(10_000.0);
-        let buy_order_a = Order::new_bid(5.0);
-        let buy_order_b = Order::new_bid(8.0);
-        let buy_order_c = Order::new_bid(10.0);
+        let buy_order_a = Order::new(5.0, OrderType::Bid);
+        let buy_order_b = Order::new(8.0, OrderType::Bid);
+        let buy_order_c = Order::new(10.0, OrderType::Bid);
 
         // Store the ID before moving the order
-        let buy_order_b_id = buy_order_b.id();
+        let buy_order_b_id = buy_order_b.id;
 
         limit.add_order(buy_order_a);
         limit.add_order(buy_order_b);
