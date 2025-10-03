@@ -137,7 +137,7 @@ impl OrderBook {
 
 #[cfg(test)]
 pub mod tests {
-    use crate::order_book::{Limit, Order, OrderType};
+    use crate::order_book::{Limit, Order, OrderBook, OrderType};
 
     #[test]
     fn successfully_adds_a_buy_order_to_a_limit() {
@@ -172,5 +172,18 @@ pub mod tests {
 
         // Then
         assert_eq!(limit.total_volume, 15.0);
+    }
+
+    #[test]
+    fn successfully_adds_a_buy_order_to_an_order_book() {
+        //Given
+        let mut order_book = OrderBook::new();
+        let buy_order = Order::new(OrderType::Bid, 10.0);
+
+        //When
+        let _result = order_book.add_order(15_000.0, buy_order);
+
+        //Then
+        assert_eq!(order_book.limits.get(&OrderType::Bid).unwrap().len(), 1);
     }
 }
