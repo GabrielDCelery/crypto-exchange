@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use time::OffsetDateTime;
 use uuid::Uuid;
@@ -14,6 +15,12 @@ use uuid::Uuid;
 enum OrderType {
     Bid,
     Ask,
+}
+
+impl fmt::Display for OrderType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self,)
+    }
 }
 
 struct Order {
@@ -33,6 +40,16 @@ impl Order {
             timestamp: OffsetDateTime::now_utc().unix_timestamp(),
             limit_id: None,
         };
+    }
+}
+
+impl fmt::Display for Order {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(id: {}, order_type: {}, size: {}, timestamp: {}",
+            self.id, self.order_type, self.size, self.timestamp
+        )
     }
 }
 
@@ -72,6 +89,16 @@ impl Limit {
             }
             None => Err(format!("Could not find order by id {order_id}")),
         }
+    }
+}
+
+impl fmt::Display for Limit {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "(id: {}, price: {}, total_volume: {})",
+            self.id, self.price, self.total_volume
+        )
     }
 }
 
