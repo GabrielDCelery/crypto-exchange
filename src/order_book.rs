@@ -10,6 +10,7 @@ use uuid::Uuid;
 //     price: f64,
 // }
 
+#[derive(Hash, Eq, PartialEq, Clone, Copy)]
 enum OrderType {
     Bid,
     Ask,
@@ -75,65 +76,43 @@ impl Limit {
 }
 
 struct OrderBook {
-    ask_limits: Vec<Limit>,
-    bid_limits: Vec<Limit>,
-    ask_limits_by_price: HashMap<String, usize>,
-    bid_limits_by_price: HashMap<String, usize>,
+    limits: HashMap<OrderType, Vec<Limit>>,
+    limits_by_price: HashMap<OrderType, HashMap<String, usize>>,
 }
 
 impl OrderBook {
     fn add_order(&mut self, price: f64, order: Order) -> Result<(), String> {
         let price_key = price.to_string();
 
-        match order.order_type {
-            OrderType::Ask => match self.ask_limits_by_price.get(&price_key) {
+        match (
+            self.limits.get_mut(&order.order_type),
+            self.limits_by_price.get_mut(&order.order_type),
+        ) {
+            (Some(limits), Some(limits_by_price)) => match limits_by_price.get(&price_key) {
                 Some(&limit_idx) => {
-                    let ask_limit_count = self.ask_limits.len();
-                    match self.ask_limits.get_mut(limit_idx) {
+                    let next_limit_idx = limits.len();
+                    match limits.get_mut(limit_idx) {
                         Some(limit) => {
                             limit.add_order(order);
-                            self.ask_limits_by_price.insert(price_key, ask_limit_count);
+                            limits_by_price.insert(price_key, next_limit_idx);
                             return Ok(());
                         }
                         None => {
-                            return Err(format!(
-                                "Missing ask limit for price {price} at idx {limit_idx}"
-                            ));
+                            return Err(format!(""));
                         }
                     }
                 }
                 None => {
                     let mut limit = Limit::new(price);
                     limit.add_order(order);
-                    self.ask_limits_by_price.insert(price_key, 0);
-                    self.ask_limits.push(limit);
+                    limits.push(limit);
+                    limits_by_price.insert(price_key, 0);
                     return Ok(());
                 }
             },
-            OrderType::Bid => match self.bid_limits_by_price.get(&price_key) {
-                Some(&limit_idx) => {
-                    let bid_limit_count = self.bid_limits_by_price.len();
-                    match self.bid_limits.get_mut(limit_idx) {
-                        Some(limit) => {
-                            limit.add_order(order);
-                            self.bid_limits_by_price.insert(price_key, bid_limit_count);
-                            return Ok(());
-                        }
-                        None => {
-                            return Err(format!(
-                                "Missing bid limit for price {price} at idx {limit_idx}"
-                            ));
-                        }
-                    }
-                }
-                None => {
-                    let mut limit = Limit::new(price);
-                    limit.add_order(order);
-                    self.bid_limits_by_price.insert(price_key, 0);
-                    self.bid_limits.push(limit);
-                    return Ok(());
-                }
-            },
+            (_, _) => {
+                return Err(format!("Invalid order type"));
+            }
         }
     }
 }
