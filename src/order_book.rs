@@ -81,37 +81,55 @@ struct OrderBook {
 }
 
 impl OrderBook {
+    fn new() -> Self {
+        let mut limits: HashMap<OrderType, Vec<Limit>> = HashMap::new();
+        let mut limits_by_price: HashMap<OrderType, HashMap<String, usize>> = HashMap::new();
+
+        for e in vec![OrderType::Bid, OrderType::Ask] {
+            limits.insert(e, vec![]);
+            limits_by_price.insert(e, HashMap::new());
+        }
+
+        OrderBook {
+            limits,
+            limits_by_price,
+        }
+    }
+
     fn add_order(&mut self, price: f64, order: Order) -> Result<(), String> {
         let price_key = price.to_string();
 
-        match (
-            self.limits.get_mut(&order.order_type),
-            self.limits_by_price.get_mut(&order.order_type),
-        ) {
-            (Some(limits), Some(limits_by_price)) => match limits_by_price.get(&price_key) {
-                Some(&limit_idx) => {
-                    let next_limit_idx = limits.len();
-                    match limits.get_mut(limit_idx) {
-                        Some(limit) => {
-                            limit.add_order(order);
-                            limits_by_price.insert(price_key, next_limit_idx);
-                            return Ok(());
-                        }
-                        None => {
-                            return Err(format!(""));
-                        }
-                    }
-                }
-                None => {
-                    let mut limit = Limit::new(price);
+        let limits = self
+            .limits
+            .get_mut(&order.order_type)
+            .expect("Did not find limits for order type");
+
+        let price_to_limit_idx_map = self
+            .limits_by_price
+            .get_mut(&order.order_type)
+            .expect("Did not find limits by price for order type");
+
+        match price_to_limit_idx_map.get(&price_key) {
+            Some(&limit_idx) => {
+                // We already have a limit for this price so we add the order to it
+                if let Some(limit) = limits.get_mut(limit_idx) {
                     limit.add_order(order);
-                    limits.push(limit);
-                    limits_by_price.insert(price_key, 0);
-                    return Ok(());
+                    Ok(())
+                } else {
+                    Err(format!(
+                        "Limit index {} is invalid for price {}",
+                        limit_idx, price
+                    ))
                 }
-            },
-            (_, _) => {
-                return Err(format!("Invalid order type"));
+            }
+            None => {
+                // These is no limit for this price yet so we need to create one
+                let mut limit = Limit::new(price);
+                limit.add_order(order);
+                let new_limit_idx = limits.len();
+                limits.push(limit);
+                price_to_limit_idx_map.insert(price_key, new_limit_idx);
+                Ok(())
             }
         }
     }
