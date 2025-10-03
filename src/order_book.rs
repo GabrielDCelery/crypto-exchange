@@ -1,5 +1,14 @@
+use std::collections::HashMap;
+
 use time::OffsetDateTime;
 use uuid::Uuid;
+
+// struct Match {
+//     ask_id: Uuid,
+//     bid_id: Uuid,
+//     size_filled: f64,
+//     price: f64,
+// }
 
 enum OrderType {
     Bid,
@@ -66,10 +75,69 @@ impl Limit {
 }
 
 struct OrderBook {
-    // an ask is a buy order for Bitcoin
-    asks: Vec<Limit>,
-    // a bid is a sell order for Bitcoin
-    bids: Vec<Limit>,
+    ask_limits: Vec<Limit>,
+    bid_limits: Vec<Limit>,
+    ask_limits_by_price: HashMap<String, usize>,
+    bid_limits_by_price: HashMap<String, usize>,
+}
+
+impl OrderBook {
+    fn add_order(&mut self, price: f64, order: Order) -> Result<(), String> {
+        let price_key = price.to_string();
+
+        match order.order_type {
+            OrderType::Ask => match self.ask_limits_by_price.get(&price_key) {
+                Some(&limit_idx) => {
+                    let ask_limit_count = self.ask_limits.len();
+                    match self.ask_limits.get_mut(limit_idx) {
+                        Some(limit) => {
+                            limit.add_order(order);
+                            self.ask_limits_by_price.insert(price_key, ask_limit_count);
+                            return Ok(());
+                        }
+                        None => {
+                            return Err(format!(
+                                "Missing ask limit for price {price} at idx {limit_idx}"
+                            ));
+                        }
+                    }
+                }
+                None => {
+                    let mut limit = Limit::new(price);
+                    limit.add_order(order);
+                    let new_index = self.ask_limits.len();
+                    self.ask_limits_by_price.insert(price_key, new_index);
+                    self.ask_limits.push(limit);
+                    return Ok(());
+                }
+            },
+            OrderType::Bid => match self.bid_limits_by_price.get(&price_key) {
+                Some(&limit_idx) => {
+                    let bid_limit_count = self.bid_limits_by_price.len();
+                    match self.bid_limits.get_mut(limit_idx) {
+                        Some(limit) => {
+                            limit.add_order(order);
+                            self.bid_limits_by_price.insert(price_key, bid_limit_count);
+                            return Ok(());
+                        }
+                        None => {
+                            return Err(format!(
+                                "Missing bid limit for price {price} at idx {limit_idx}"
+                            ));
+                        }
+                    }
+                }
+                None => {
+                    let mut limit = Limit::new(price);
+                    limit.add_order(order);
+                    let limit_uuids = vec![0];
+                    self.bid_limits_by_price.insert(price_key, 0);
+                    self.bid_limits.push(limit);
+                    return Ok(());
+                }
+            },
+        }
+    }
 }
 
 #[cfg(test)]
