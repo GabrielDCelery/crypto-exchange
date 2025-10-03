@@ -15,7 +15,7 @@ struct Order {
 }
 
 impl Order {
-    fn new(size: f64, order_type: OrderType) -> Self {
+    fn new(order_type: OrderType, size: f64) -> Self {
         return Order {
             id: Uuid::new_v4(),
             order_type: order_type,
@@ -80,7 +80,7 @@ pub mod tests {
     fn successfully_adds_a_buy_order_to_a_limit() {
         // Given
         let mut limit = Limit::new(10_000.0);
-        let buy_order = Order::new(5.0, OrderType::Bid);
+        let buy_order = Order::new(OrderType::Bid, 5.0);
 
         // When
         limit.add_order(buy_order);
@@ -93,9 +93,9 @@ pub mod tests {
     fn successfully_removes_a_buy_order_from_a_limit() {
         // Given
         let mut limit = Limit::new(10_000.0);
-        let buy_order_a = Order::new(5.0, OrderType::Bid);
-        let buy_order_b = Order::new(8.0, OrderType::Bid);
-        let buy_order_c = Order::new(10.0, OrderType::Bid);
+        let buy_order_a = Order::new(OrderType::Bid, 5.0);
+        let buy_order_b = Order::new(OrderType::Bid, 8.0);
+        let buy_order_c = Order::new(OrderType::Bid, 10.0);
 
         // Store the ID before moving the order
         let buy_order_b_id = buy_order_b.id;
