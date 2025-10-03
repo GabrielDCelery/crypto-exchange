@@ -105,8 +105,7 @@ impl OrderBook {
                 None => {
                     let mut limit = Limit::new(price);
                     limit.add_order(order);
-                    let new_index = self.ask_limits.len();
-                    self.ask_limits_by_price.insert(price_key, new_index);
+                    self.ask_limits_by_price.insert(price_key, 0);
                     self.ask_limits.push(limit);
                     return Ok(());
                 }
@@ -130,7 +129,6 @@ impl OrderBook {
                 None => {
                     let mut limit = Limit::new(price);
                     limit.add_order(order);
-                    let limit_uuids = vec![0];
                     self.bid_limits_by_price.insert(price_key, 0);
                     self.bid_limits.push(limit);
                     return Ok(());
