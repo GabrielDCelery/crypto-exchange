@@ -63,8 +63,8 @@ struct Limit {
 }
 
 impl Limit {
-    fn new(price: f64) -> Limit {
-        return Limit {
+    fn new(price: f64) -> Self {
+        return Self {
             id: Uuid::new_v4(),
             price,
             orders: vec![],
